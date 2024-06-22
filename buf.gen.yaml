@@ -1,0 +1,6 @@
+version: v2
+plugins:
+  - local:
+      - python3
+      - ${packagesDir}/betterproto/plugin/main.py
+    out: schema

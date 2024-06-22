@@ -1,0 +1,44 @@
+name: Generate code using Buf
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate Code
+        run: |
+          sudo apt install gettext moreutils
+          python3 -m venv venv
+          source venv/bin/activate
+          
+          pip install "betterproto[compiler]==2.0.0b6"
+          export packagesDir=`python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])'`
+          envsubst < buf.gen.yaml | sponge buf.gen.yaml
+          
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.34.0/buf-Linux-x86_64" -o /usr/local/bin/buf
+          chmod +x /usr/local/bin/buf
+          
+          buf generate
+
+      - name: Commit generated files
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@users.noreply.github.com'
+          git add schema
+          git commit -m "Generate code from .proto files"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
